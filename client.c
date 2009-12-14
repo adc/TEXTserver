@@ -78,13 +78,11 @@ void move_right(struct plyr *p) {
 
 void dump_world(struct plyr *p) {
   int i,j;
-  usleep(100);
   for(i = 0; i < SZ_Y; i++){
     move_cursor(p->fd, 0, i);
     for(j = 0; j < SZ_X; j++){
       //printf("displaying char @ %d,%d :: %d\n", i,j, CHARAT(p,i,j));
       write_byte(p->fd, CHARAT(p,j,i));
-      usleep(100);
     }
   }
 
