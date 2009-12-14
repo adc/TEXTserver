@@ -1,0 +1,47 @@
+Requirements:
+
+  Users should see other users updating cells
+  at their current location in real time.
+  
+  No limit on num of clients
+  
+  Client data structures should not be aware of other clients
+--------
+  
+Idea 1:
+
+Use shared memory segments to represent locations.
+
+SZ_Y = 30; SZ_X = 60 = 1800 cells per location.
+
+Although cells represent 1 character, they are currently
+4 bytes to make room for colors and other things. Maybe unicode 
+in the future.
+
+1800 * 4 = 7200 bytes per location.
+
+1 page = 4096 bytes. This means 2 pages of memory
+are required per location with 992 bytes left over for
+overhead data structures. 
+
+overhead:
+4-byte  last_modified counter  which holds the timestamp of the last update
+4-byte  last-accessed counter ??
+
+4* 4 bytes for adjacent locations
+  up, down, left, right
+
+4 byte x coordinate
+4 byte y coordinate
+...
+
+Extra data structures:
+
+  splay tree of recently accessed locations
+  for efficient memory access.
+  
+  
+
+
+
+
