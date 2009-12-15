@@ -59,7 +59,7 @@ int main()
   while(1){
     n = accept(fd, (struct sockaddr *)&addr, &addrlen);
     printf("[+] Connection from %s\n", inet_ntoa(addr.sin_addr));
-    if( 1) { //fork() == 0 ) {
+    if( fork() == 0 ) {
       handle_player(n);
       exit(0);
     }  else {
