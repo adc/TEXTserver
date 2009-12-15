@@ -29,9 +29,8 @@ void init_world(struct loc *world, int x, int y) {
       }
     }
 
-    world->up = world->dn = world->lf = world->rt = NULL;
   }  
-
+  world->up = world->dn = world->lf = world->rt = NULL;
 }
 
 void start_world() {
@@ -70,10 +69,21 @@ struct loc *new_loc(int x, int y)
   return l;
 }
 
-struct loc *link(struct loc *cur, struct loc** dir, int x, int y)
+struct loc *link(struct loc *cur, int *id, struct loc** dir, int x, int y)
 {
-  if(*dir) return *dir;
-  *dir = new_loc(x,y);
+  if(*id) { 
+    if(*dir) return *dir;
+    *dir = shmat(*id, NULL, 0);
+    if(!(*dir)){
+      perror("shmat");
+      exit(-1);
+    }
+    return *dir;
+  }
+  else {
+    *dir = new_loc(x,y);
+    *id = (*dir)->id;
+  }
   return *dir;
 }
 
@@ -86,37 +96,34 @@ void *get_world(int x, int y)
   if(!world_start) start_world();
   
   //seek to world @ x,y
+  p = world_start;
   printf("seeking to %d, %d from %d, %d\n", x,y, p->x, p->y);
-  for(p = world_start; p; ) {
+  for( ; p; ) {
     if(p->x == x && p->y == y) return p;
 
     if(x > p->x){    
        printf("LINK RIGHT\n");
-       q = link(p, &p->rt, p->x+1, p->y);
+       q = link(p, &p->idrt, &p->rt, p->x+1, p->y);
        q->lf = p;
        q->idlf = p->id;
-       p->idrt = q->id;
     }
     if(x < p->x){
        printf("LINK LEFT\n");
-       q = link(p, &p->lf, p->x-1, p->y);
+       q = link(p, &p->idlf, &p->lf, p->x-1, p->y);
        q->rt= p;
        q->idrt = p->id;
-       p->idlf = q->id;
     }
     if(y > p->y){
        printf("LINK DOWN\n");
-       q = link(p, &p->dn, p->x, p->y+1);
+       q = link(p, &p->iddn, &p->dn, p->x, p->y+1);
        q->up = p;
        q->idup = p->id;
-       p->iddn = q->id;
     }
     if(y < p->y){
        printf("LINK UP\n");
-       q = link(p, &p->up, p->x, p->y-1);
+       q = link(p, &p->idup, &p->up, p->x, p->y-1);
        q->dn = p;
        q->iddn = p->id;
-       p->idup = q->id;
     }
     
     p = q;
