@@ -8,27 +8,6 @@
 #include <errno.h>
 #include "data.h"
 
-struct loc
-{
-  time_t mtime, atime;
-  int x, y;
-  struct loc *up;
-  struct loc *dn;
-  struct loc *lf;
-  struct loc *rt;
-  int buf[SZ_Y * (SZ_X)]; 
-};
-
-struct plyr
-{
-  int fd;
-  int x;
-  int y;
-  int lastdump;
-  time_t lastinput;
-  struct loc *location;
-} plyr;
-
 int set_byte(struct plyr *p, unsigned int val)
 {
   CHARAT(p,p->x,p->y) = val;
@@ -56,24 +35,46 @@ void move_cursor(int fd, int x, int y) {
   send(fd, buf, strlen(buf), 0);
 }
 
+void update_loc(struct plyr *p, int newx, int newy)
+{
+  p->location = (struct loc *)get_world(newx, newy);
+  p->worldx = newx;
+  p->worldy = newy;
+  p->lastdump = 0;
+  printf("UPDATE LOCATION to %p @ %d,%d\n", p->location,newx,newy);
+  dump_world(p);
+}
+
 void move_up(struct plyr *p) {
   p->y--;
-  if(p->y < 0) p->y = SZ_Y-1;
+  if(p->y < 0){
+    p->y = SZ_Y-1;
+    update_loc(p, p->worldx, p->worldy-1);
+  }
 }
 
 void move_down(struct plyr *p) {
   p->y++;
-  if(p->y >= SZ_Y) p->y = 0;
+  if(p->y >= SZ_Y){
+    p->y = 0;
+    update_loc(p, p->worldx, p->worldy+1);
+  }
 }
 
 void move_left(struct plyr *p) {
   p->x--;
-  if(p->x<0) p->x = SZ_X-1;
+  if(p->x<0){
+     p->x = SZ_X-1;
+     update_loc(p, p->worldx-1, p->worldy);
+  }
 }
 
 void move_right(struct plyr *p) {
   p->x++;
-  if(p->x >= SZ_X) p->x = 0;
+  if(p->x >= SZ_X) {
+    p->x = 0;
+    update_loc(p, p->worldx+1, p->worldy);
+  } 
 }
 
 void dump_world(struct plyr *p) {
@@ -110,7 +111,7 @@ void handle_escapes(struct plyr *p) {
 
 
 void startmsg(int fd) {
-  #define MSG " Hi! Welcome to the world of infinite 2d text.\n"\
+  #define MSG "\n\n\n\nHi! Welcome to the world of infinite 2d text.\n"\
               " Hit any key to start. You might want to try a client\n" \
               " which supports character mode (vs line mode). Try telnet\n"\
               " and hit ctrl+] followed by 'm c' for mode character\n"\
@@ -158,7 +159,6 @@ int handle_input(struct plyr *p){
     } else if(z == 10){
      
     } else {
-      printf("Writing to %p\n", &CHARAT(p, p->x, p->y));
       set_byte(p, z);
       move_right(p);
     }
@@ -179,6 +179,7 @@ void handle_player(int sock) {
   
   p->fd = sock;
   p->x = p->y = p->lastdump = 0;
+  p->worldx = p->worldy = 0;
   p->location = (struct loc *) get_world(0,0);
 
   if(p->location == NULL)
@@ -203,11 +204,9 @@ void handle_player(int sock) {
      break;   
     }
 
-
     //display
     if(p->x != prevx || p->y != prevy)
     {
-
       //printf("trying to display @ %d, %d: %d\n", prevx, prevy, CHARAT(p,prevx, prevy));
       write_byte(p->fd, CHARAT(p,prevx, prevy));
     
