@@ -37,7 +37,7 @@ void move_cursor(int fd, int x, int y) {
 
 void update_loc(struct plyr *p, int newx, int newy)
 {
-  p->location = (struct loc *)get_world(newx, newy);
+  p->location = (struct loc *)get_world(p, newx, newy);
   p->worldx = newx;
   p->worldy = newy;
   p->lastdump = 0;
@@ -180,7 +180,8 @@ void handle_player(int sock) {
   p->fd = sock;
   p->x = p->y = p->lastdump = 0;
   p->worldx = p->worldy = 0;
-  p->location = (struct loc *) get_world(0,0);
+  p->location = NULL;
+  p->location = (struct loc *) get_world(p, 0,0);
 
   if(p->location == NULL)
   {

@@ -21,10 +21,10 @@ void RM(int shmid)
   if(x != -1){    
     if(!(x->id)){ return; } 
     x->id = NULL;
-    RM(x->idup);
-    RM(x->iddn);
-    RM(x->idlf);
-    RM(x->idrt);
+    RM(x->up);
+    RM(x->dn);
+    RM(x->lf);
+    RM(x->rt);
   } else {
     perror("shmat");
     return;      

@@ -7,8 +7,7 @@ struct loc
   time_t mtime, atime;
   int x, y;
   int id;
-  struct loc *up,*dn,*lf,*rt;
-  int idup, iddn, idlf, idrt;
+  int up, dn, lf, rt;
   int buf[SZ_Y * (SZ_X)]; 
 };
 

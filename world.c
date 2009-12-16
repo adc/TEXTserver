@@ -9,32 +9,28 @@
 
 #define SHMKEY  0xADC00ADC
 
-int shmid;
-key_t t;
-struct loc *world_start;
 
 void init_world(struct loc *world, int x, int y) {
   int i, j;
-  if(world->mtime == 0)
-  {
+  if(world->mtime == 0) {
     printf("init world @ %d,%d\n",x,y);
     world->mtime = time(NULL);  
     world->atime = time(NULL);
     world->x = x;
     world->y = y;
 
-    for(i = 0; i < SZ_X; i++){
-      for(j = 0; j < SZ_Y; j++){
+    for(i = 0; i < SZ_X; i++)
+      for(j = 0; j < SZ_Y; j++)
         world->buf[j*SZ_X + i] = 0x20;
-      }
-    }
-
   }  
-  world->up = world->dn = world->lf = world->rt = NULL;
 }
 
-void start_world() {
+struct loc* world_start;
+
+struct loc* start_world() {
   // loads world 0 
+  int shmid;
+  
   shmid = shmget(SHMKEY, 8192, IPC_CREAT | 0666);
   if(shmid < 0){
     perror("shmget");
@@ -47,6 +43,7 @@ void start_world() {
     world_start->id = shmid;
   }
   init_world(world_start, 0, 0);
+  return world_start;
 }
 
 struct loc *new_loc(int x, int y)
@@ -69,64 +66,67 @@ struct loc *new_loc(int x, int y)
   return l;
 }
 
-struct loc *link(struct loc *cur, int *id, struct loc** dir, int x, int y)
+struct loc *link(int *id, int x, int y)
 {
+  struct loc* ret;
+  
   if(*id) { 
-    if(*dir){
-      return *dir;
-    }
-    *dir = shmat(*id, NULL, 0);
+    ret = shmat(*id, NULL, 0);
     //clear out links
-    init_world(*dir, x, y);
-    if(!(*dir)){
+    if(!ret){
       perror("shmat");
       exit(-1);
     }
   }
   else {
-    *dir = new_loc(x,y);
-    *id = (*dir)->id;
+    ret = new_loc(x,y);
+    *id = ret->id;
   }
-  return *dir;
+  return ret;
 }
 
 
-void *get_world(int x, int y)
+void *get_world(struct plyr *player, int x, int y)
 {
   int i, j;
   int **b;
   struct loc *p,*q;
-  if(!world_start) start_world();
   
   //seek to world @ x,y
+  if(!world_start) world_start = start_world();
+
+  if(player->location != world_start)
+    shmdt(player->location);
+    
   for(p = world_start ; p; ) {
-    if(p->x == x && p->y == y) return p;
+    if(p->x == x && p->y == y){
+      
+     return p;
+    }
     printf("seeking to %d, %d from %d, %d\n", x,y, p->x, p->y);
     if(x > p->x){    
-       printf("LINK RIGHT\n");
-       q = link(p, &p->idrt, &p->rt, p->x+1, p->y);
-       q->lf = p;
-       q->idlf = p->id;
+      printf("LINK RIGHT\n");
+      q = link(&p->rt, p->x+1, p->y);
+      q->lf = p->id;
     }
     if(x < p->x){
-       printf("LINK LEFT\n");
-       q = link(p, &p->idlf, &p->lf, p->x-1, p->y);
-       q->rt= p;
-       q->idrt = p->id;
+      printf("LINK LEFT\n");
+      q = link(&p->lf, p->x-1, p->y);
+      q->rt = p->id;
     }
     if(y > p->y){
-       printf("LINK DOWN\n");
-       q = link(p, &p->iddn, &p->dn, p->x, p->y+1);
-       q->up = p;
-       q->idup = p->id;
+      printf("LINK DOWN\n");
+      q = link(&p->dn, p->x, p->y+1);
+      q->up = p->id;
     }
     if(y < p->y){
-       printf("LINK UP\n");
-       q = link(p, &p->idup, &p->up, p->x, p->y-1);
-       q->dn = p;
-       q->iddn = p->id;
+      printf("LINK UP\n");
+      q = link(&p->up, p->x, p->y-1);
+      q->dn = p->id;
     }
     
+    if(p != world_start)
+      printf("Detaching %p = %d\n",p,shmdt(p));
     p = q;
   }
 
