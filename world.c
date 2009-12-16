@@ -72,13 +72,16 @@ struct loc *new_loc(int x, int y)
 struct loc *link(struct loc *cur, int *id, struct loc** dir, int x, int y)
 {
   if(*id) { 
-    if(*dir) return *dir;
+    if(*dir){
+      return *dir;
+    }
     *dir = shmat(*id, NULL, 0);
+    //clear out links
+    init_world(*dir, x, y);
     if(!(*dir)){
       perror("shmat");
       exit(-1);
     }
-    return *dir;
   }
   else {
     *dir = new_loc(x,y);
