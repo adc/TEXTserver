@@ -96,11 +96,9 @@ void *get_world(int x, int y)
   if(!world_start) start_world();
   
   //seek to world @ x,y
-  p = world_start;
-  printf("seeking to %d, %d from %d, %d\n", x,y, p->x, p->y);
-  for( ; p; ) {
+  for(p = world_start ; p; ) {
     if(p->x == x && p->y == y) return p;
-
+    printf("seeking to %d, %d from %d, %d\n", x,y, p->x, p->y);
     if(x > p->x){    
        printf("LINK RIGHT\n");
        q = link(p, &p->idrt, &p->rt, p->x+1, p->y);
